@@ -7,8 +7,10 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"sync"
+	"time"
 )
+
+var done = make(chan string, 1)
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
@@ -35,18 +37,27 @@ func main() {
 				fmt.Println("wrong thread number")
 			}
 
-			var wg sync.WaitGroup
+			start := time.Now()
+			//var wg sync.WaitGroup
 			for _, v := range divide(validCombinations(5), n) {
-				wg.Add(1)
+				//wg.Add(1)
 				go func(pass []string, input string) {
 					for _, fetch := range pass {
-						bruteForce(input, fetch)
+						select {
+						case <-done:
+							return
+						default:
+							bruteForce(input, fetch)
+						}
 					}
-					wg.Done()
+					//wg.Done()
 				}(v, input)
 				//go decode(v, input)
 			}
-			wg.Wait()
+			//wg.Wait()
+
+			//fmt.Println(<-c)
+			fmt.Println(time.Since(start))
 		} else {
 			fmt.Println("hash is not in SHA-256 standard")
 			continue
@@ -60,6 +71,7 @@ func bruteForce(hash string, fetch string) {
 
 	if fmt.Sprintf("%x", h.Sum(nil)) == hash {
 		fmt.Println("fetched password: " + fetch)
+		done <- fetch
 	}
 }
 
